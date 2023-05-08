@@ -1,0 +1,8 @@
+.ipynb_checkpoints
+*.tar
+.DS_store
+train_model
+__pycache__
+logs
+.gitmodules
+submit*.sh
