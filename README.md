@@ -1,6 +1,16 @@
 # Research data supporting "Coarse-grained versus fully atomistic machine learning for zeolitic imidazolate frameworks"
 
-This repository supports the manuscript ...
+This repository supports the manuscript...
+
+<div align="center">
+
+> **[Coarse-grained versus fully atomistic machine learning for zeolitic imidazolate frameworks]()**\
+> _[Zoé Faure Beaulieu](https://twitter.com/ZFaureBeaulieu), [Thomas Nicholas](https://twitter.com/thomascnicholas), [John Gardner](https://twitter.com/jla_gardner), [Andrew Goodwin](https://goodwingroupox.uk/), and [Volker Deringer](http://deringer.chem.ox.ac.uk)_
+
+</div>
+
+See the [sister repository](https://github.com/tcnicholas/hZIF-data) for 
+details of the database used to obtain the results in the [mansucript]().
 
 ## License <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/80x15.png" /></a>
 This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
