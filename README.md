@@ -19,7 +19,7 @@ This work is licensed under a <a rel="license" href="http://creativecommons.org/
 
 ### **1. Clone the repository**
 ```bash
-git clone --recurse-submodules git@git.chem.ox.ac.uk:vld-group/theme-ml/cg-mofs.git
+git clone --recurse-submodules git@github.com:ZoeFaureBeaulieu/cg-gpr.git
 cd cg-mofs
 ```
 
