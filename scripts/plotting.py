@@ -161,16 +161,18 @@ def get_minima_labels(df: pd.DataFrame, sort_by: str) -> Tuple[float, float]:
 
 def get_learning_curve_data(
     struct_type: str,
+    l_max: int = 8,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Obtain results from the learning curve experiments for a given structure type.
 
     Args:
         struct_type (str): the structure type: 'cg', 'A_cg', 'atomistic'
+        l_max (int, optional): the l_max value used in the SOAP descriptors. Defaults to 8.
 
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: the x and y values (training set size and RMSE respectively); and the y ticks and labels.
     """
-    df = pd.read_csv(learning_curve_results / f"lc_lMax8_{struct_type}.csv")
+    df = pd.read_csv(learning_curve_results / f"lc_lMax{l_max}_{struct_type}.csv")
 
     index = df["numb_training_atoms"] > 5
     x = df["numb_training_atoms"][index]

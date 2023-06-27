@@ -509,3 +509,9 @@ def normalise_energies(energies: np.ndarray, ref: Atoms) -> np.ndarray:
     normalised_energies = energies - av_local_e
 
     return normalised_energies
+
+
+def map_chemical_symbols(structure, mapping):
+    original_symbols = structure.get_chemical_symbols()
+    new_symbols = [mapping[s] for s in original_symbols]
+    structure.set_chemical_symbols(new_symbols)
