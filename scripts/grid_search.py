@@ -60,7 +60,10 @@ complete_cg_df, complete_a_df = get_complete_dataframes(
 fold_ids = get_fold_ids(complete_cg_df, 5)
 
 # get the optimised regularisation noise, obtained from Bayesian optimisation
-_, _, noise = get_opt_hypers(args.struct_type, linker_type=args.linker_type)
+if args.linker_type == "H_new":
+    noise = 0.2
+else:
+    _, _, noise = get_opt_hypers(args.struct_type, linker_type=args.linker_type)
 
 
 # using the digital experiments package to save the results to a csv file
