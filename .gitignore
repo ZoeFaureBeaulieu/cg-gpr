@@ -6,3 +6,6 @@ __pycache__
 logs
 .gitmodules
 submit*.sh
+hZIF-data_old
+synthetic-data-experiments
+lightning_logs

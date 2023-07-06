@@ -74,7 +74,6 @@ def gpr_with_cv(
 
             energies = get_energies(df, id_tags, batches, energy_type=energy_type)
             energies = np.concatenate(energies).reshape(-1, 1)  # reshape to 2D array
-            print("Length energies", len(energies))
 
             # if atomistic_df is not None, use the atomistic SOAPs for training
             if atomistic_df is not None:
@@ -88,8 +87,6 @@ def gpr_with_cv(
                 )
 
             soaps = np.concatenate(soaps)
-            print("Length soaps", len(soaps))
-            print("SOAP shape", soaps.shape)
             error_message = "Number of energies and SOAPs do not match"
             assert len(energies) == len(soaps), error_message
 

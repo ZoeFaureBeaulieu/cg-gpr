@@ -1,7 +1,6 @@
 from data import (
     get_complete_dataframes,
     get_fold_ids,
-    all_rattled_batches,
     get_opt_hypers,
     build_soap_descriptor,
 )
@@ -25,27 +24,47 @@ parser.add_argument(
     help="Structure type (cg, A_cg or atomistic)",
     required=True,
 )
+parser.add_argument(
+    "--linker_type",
+    type=str,
+    help="Linker type (H or CH3)",
+    required=True,
+)
 
 # optional arguments
-parser.add_argument(
-    "--numb_train", type=int, help="Number of training atoms", default=20000
-)  # number of training environments is optional; default is 20000
 parser.add_argument(
     "--energy_type", type=str, help="Energy type", default="e_local_mofff"
 )
 args = parser.parse_args()
 
+if args.linker_type == "H":
+    all_rattled_batches = [2, 3, 4, 5, 6]
+    energy_cutoff = 1
+    numb_train = 20000
+elif args.linker_type == "CH3":
+    all_rattled_batches = [2, 3, 4, 5]
+    energy_cutoff = -5.7
+    numb_train = 18500
+elif args.linker_type == "H_new":
+    all_rattled_batches = [2, 3, 4, 5]
+    energy_cutoff = 1
+    numb_train = 20000
+
+
 # load all the data as two dataframes: one for the cg structures and one for the atomistic structures
-complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=1)
+complete_cg_df, complete_a_df = get_complete_dataframes(
+    energy_cutoff=energy_cutoff, im_linker=args.linker_type
+)
 
 # randomly split the structure ids into k folds
 fold_ids = get_fold_ids(complete_cg_df, 5)
 
 # get the optimised regularisation noise, obtained from Bayesian optimisation
-_, _, noise = get_opt_hypers(args.struct_type)
+_, _, noise = get_opt_hypers(args.struct_type, linker_type=args.linker_type)
+
 
 # using the digital experiments package to save the results to a csv file
-results_path = root_dir / f"results/grid_search/{args.struct_type}"
+results_path = root_dir / f"results/grid_search/{args.struct_type}_{args.linker_type}"
 
 
 @experiment(backend="csv", save_to=results_path, verbose=True)
@@ -84,7 +103,7 @@ def train_model(atom_sigma: float, soap_cutoff: float, noise: float = noise) -> 
         test_batches=all_rattled_batches,
         descriptor=desc,
         atomistic_df=a_df,
-        numb_train=args.numb_train,
+        numb_train=numb_train,
         B_site=B_site,
         energy_type=args.energy_type,
     )

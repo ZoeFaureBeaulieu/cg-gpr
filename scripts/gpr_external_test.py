@@ -4,7 +4,6 @@ from data import (
     get_fold_ids,
     get_opt_hypers,
     get_opt_soap_descriptor,
-    all_rattled_batches,
     get_energies,
     calc_soap_vectors,
     remove_B_sites,
@@ -26,6 +25,12 @@ parser.add_argument(
     help="Structure type (cg, A_cg or atomistic)",
     required=True,
 )
+parser.add_argument(
+    "--linker_type",
+    type=str,
+    help="Linker type (H or CH3)",
+    required=True,
+)
 
 # optional arguments
 parser.add_argument(
@@ -38,16 +43,28 @@ args = parser.parse_args()
 
 print(f"Structure type: {args.struct_type}")
 
-complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=1)
+if args.linker_type == "H":
+    all_rattled_batches = [2, 3, 4, 5, 6]
+    energy_cutoff = 1
+elif args.linker_type == "CH3":
+    all_rattled_batches = [2, 3, 4, 5]
+    energy_cutoff = -5.7
+elif args.linker_type == "H_new":
+    all_rattled_batches = [2, 3, 4, 5]
+    energy_cutoff = 1
 
-numb_train = 20000
+numb_train = 32000
+
+complete_cg_df, complete_a_df = get_complete_dataframes(
+    energy_cutoff=energy_cutoff, im_linker=args.linker_type
+)
 
 print(f"Number of training atoms: {numb_train}")
 
-test_atomistic = read(root_dir / "atomistic.xyz", index=":")
-test_cg = read(root_dir / "coarse_grained.xyz", index=":")
+test_atomistic = read(root_dir / "bulk_modulus_data/atomistic.xyz", index=":")
+test_cg = read(root_dir / "bulk_modulus_data/coarse_grained.xyz", index=":")
 
-soap_cutoff, atom_sigma, noise = get_opt_hypers(args.struct_type)
+soap_cutoff, atom_sigma, noise = get_opt_hypers(args.struct_type, linker_type="H")
 desc, noise = get_opt_soap_descriptor(args.struct_type, l_max=8)
 
 # set the B_site flag and the atomistic dataframe if needed
@@ -123,6 +140,6 @@ for s in range(len(test_structures)):
 
 np.save(
     root_dir
-    / f"results/bulk_modulus/{args.struct_type}_BM_preds_ntrain{numb_train}.npy",
+    / f"results/bulk_modulus/{args.struct_type}_BM_preds_ntrain{numb_train}_H_new.npy",
     per_struct_preds,
 )

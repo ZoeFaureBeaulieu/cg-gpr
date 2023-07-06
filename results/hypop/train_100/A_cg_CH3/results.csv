@@ -1,0 +1,2 @@
+id,config.atom_sigma,config.soap_cutoff,config.noise,result.av_train_rmse,result.av_test_rmse,metadata.timing.start,metadata.timing.end,metadata.search-mode
+230628-144545-8299-full-fold,0.4,12.0,0.7385345936107368,0.280036509880338,0.4178961983062129,1687959945.831371,1687959957.108319,random

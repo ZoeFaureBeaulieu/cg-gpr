@@ -2,7 +2,6 @@ import numpy as np
 from data import (
     get_complete_dataframes,
     get_fold_ids,
-    all_rattled_batches,
     get_opt_hypers,
     build_soap_descriptor,
 )
@@ -27,6 +26,12 @@ parser.add_argument(
     help="The structure type from which to take the optimised hypers",
     required=True,
 )
+parser.add_argument(
+    "--linker_type",
+    type=str,
+    help="Linker type (H or CH3)",
+    required=True,
+)
 
 # optional arguments
 parser.add_argument(
@@ -42,19 +47,30 @@ args = parser.parse_args()
 
 print(f"Structure type: {args.struct_type}")
 print(f"Hypers type: {args.hypers_type}")
-print(f"Number of training atoms = {args.numb_train}")
-print(f"l_max = {args.l_max}")
-print(f"Energy type = {args.energy_type}")
+print(f"Number of training atoms: {args.numb_train}")
+print(f"Imidazolate linker type: {args.linker_type}")
+
+if args.linker_type == "H":
+    all_rattled_batches = [2, 3, 4, 5, 6]
+    energy_cutoff = 1
+elif args.linker_type == "CH3":
+    all_rattled_batches = [2, 3, 4, 5]
+    energy_cutoff = -5.7
+elif args.linker_type == "H_new":
+    all_rattled_batches = [2, 3, 4, 5]
+    energy_cutoff = 1
 
 # load all the data as two dataframes: one for the cg structures and one for the atomistic structures
-complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=1)
+complete_cg_df, complete_a_df = get_complete_dataframes(
+    energy_cutoff=energy_cutoff, im_linker=args.linker_type
+)
 
 # randomly split the structure ids into k folds
 fold_ids = get_fold_ids(complete_cg_df, 5)
 
 # get the SOAP descriptor with optimised hyperparameters
 # and the optimised regularisation noise
-soap_cutoff, atom_sigma, noise = get_opt_hypers(args.hypers_type)
+soap_cutoff, atom_sigma, noise = get_opt_hypers(args.hypers_type, linker_type="H")
 desc = build_soap_descriptor(args.struct_type, soap_cutoff, atom_sigma, args.l_max)
 
 
@@ -112,6 +128,6 @@ else:
 np.save(
     gpr_results
     / e_label
-    / f"{args.hypers_type}_hypers/gpr_{args.struct_type}_ntrain{args.numb_train}.npy",
+    / f"{args.hypers_type}_hypers/gpr_{args.struct_type}_ntrain{args.numb_train}_{args.linker_type}.npy",
     gpr_preds,
 )

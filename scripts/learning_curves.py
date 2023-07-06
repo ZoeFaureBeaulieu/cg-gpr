@@ -4,7 +4,6 @@ from data import (
     get_fold_ids,
     get_opt_hypers,
     get_opt_soap_descriptor,
-    all_rattled_batches,
 )
 from gpr_functions import gpr_with_cv
 import csv
@@ -20,6 +19,12 @@ parser.add_argument(
     help="Structure type (cg, A_cg or atomistic)",
     required=True,
 )
+parser.add_argument(
+    "--linker_type",
+    type=str,
+    help="Linker type (H or CH3)",
+    required=True,
+)
 
 # optional arguments
 parser.add_argument(
@@ -32,18 +37,32 @@ args = parser.parse_args()
 
 print(f"Structure type: {args.struct_type}")
 
+if args.linker_type == "H":
+    all_rattled_batches = [2, 3, 4, 5, 6]
+    energy_cutoff = 1
+elif args.linker_type == "CH3":
+    all_rattled_batches = [2, 3, 4, 5]
+    energy_cutoff = -5.7
+elif args.linker_type == "H_new":
+    all_rattled_batches = [2, 3, 4, 5]
+    energy_cutoff = 1
+
 # load all the data as two dataframes: one for the cg structures and one for the atomistic structures
-complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=1)
+complete_cg_df, complete_a_df = get_complete_dataframes(
+    energy_cutoff=energy_cutoff, im_linker=args.linker_type
+)
 
 # randomly split the structure ids into k folds
 fold_ids = get_fold_ids(complete_cg_df, 5)
 
 # number of training environments to use
-n_train = [7, 15, 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000, 32000]
+n_train = [
+    32000
+]  # [7, 15, 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000]  # , 16000, 32000]
 
 # get the SOAP descriptor with optimised hyperparameters
 # and the optimised regularisation noise
-soap_cutoff, atom_sigma, noise = get_opt_hypers(args.struct_type)
+soap_cutoff, atom_sigma, noise = get_opt_hypers(args.struct_type, args.linker_type)
 desc, noise = get_opt_soap_descriptor(args.struct_type, args.l_max)
 
 # set the B_site flag and the atomistic dataframe if needed
@@ -59,7 +78,8 @@ else:
 
 # create a csv file to store the results
 file_name = (
-    root_dir / f"results/learning_curve/lc_lMax{args.l_max}_{args.struct_type}.csv"
+    root_dir
+    / f"results/learning_curve/lc_lMax{args.l_max}_{args.struct_type}_{args.linker_type}.csv"
 )
 
 headers = [

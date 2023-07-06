@@ -1,10 +1,10 @@
 from digital_experiments import experiment
-from digital_experiments import optimize_step_for, Real
+from digital_experiments.optmization import optimize_step_for, Real
 from data import (
     get_complete_dataframes,
     build_soap_descriptor,
     get_fold_ids,
-    all_rattled_batches,
+    get_opt_hypers,
 )
 from gpr_functions import gpr_with_cv
 import argparse
@@ -17,24 +17,48 @@ parser.add_argument(
     help="Structure type (cg, A_cg or atomistic)",
     required=True,
 )
+parser.add_argument(
+    "--linker_type",
+    type=str,
+    help="Linker type (H or CH3)",
+    required=True,
+)
 
 # optional arguments
 parser.add_argument(
-    "--numb_train", type=int, help="Number of training atoms", default=20000
+    "--numb_train", type=int, help="Number of training atoms", default=10000
 )  # number of training environments is optional; default is 20000
 parser.add_argument(
     "--energy_type", type=str, help="Energy type", default="e_local_mofff"
 )
 args = parser.parse_args()
 
+if args.linker_type == "H":
+    all_rattled_batches = [2, 3, 4, 5, 6]
+    energy_cutoff = 1
+elif args.linker_type == "CH3":
+    all_rattled_batches = [2, 3, 4, 5]
+    energy_cutoff = -5.7
+elif args.linker_type == "H_new":
+    all_rattled_batches = [2, 3, 4, 5]
+    energy_cutoff = 1
+
 # load all the data as two dataframes: one for the cg structures and one for the atomistic structures
-complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=1)
+complete_cg_df, complete_a_df = get_complete_dataframes(
+    energy_cutoff=energy_cutoff, im_linker=args.linker_type
+)
 
 # randomly split the structure ids into k folds
 fold_ids = get_fold_ids(complete_cg_df, 5)
 
 # use digital experiments package to save the results to a csv file
-results_dir = f"results/hypop/train_{args.numb_train}/{args.struct_type}"
+results_dir = (
+    f"results/hypop/train_{args.numb_train}/{args.struct_type}_{args.linker_type}"
+)
+
+soap_cutoff, atom_sigma, _ = get_opt_hypers(
+    args.struct_type, linker_type=args.linker_type
+)
 
 
 @experiment(backend="csv", save_to=results_dir, verbose=True)
@@ -83,14 +107,15 @@ def train_model(atom_sigma: float, soap_cutoff: float, noise: float) -> dict:
 
 # define the search space for the optimisation
 search_space = {
-    "cutoff": Real(1.5, 15),
-    "sigma": Real(0.1, 2),
+    # "cutoff": Real(1.5, 15),
+    # "sigma": Real(0.1, 2),
     "noise": Real(1e-4, 1, prior="log-uniform"),  # use a log scale for the noise
 }
 
 # run the optimisation using the digital experiments package
 optimize_step_for(
     train_model,
+    config_overides={"atom_sigma": atom_sigma, "soap_cutoff": soap_cutoff},
     # minimize the average test set RMSE
     loss_fn=lambda results: results["av_test_rmse"],
     n_random_points=70,  # number of random points to try before Bayesian optimisation
