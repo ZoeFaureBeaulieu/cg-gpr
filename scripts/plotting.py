@@ -9,8 +9,9 @@ from .data import get_reference_structure, normalise_energies
 root_dir = Path(__file__).resolve().parent.parent
 # directories to the data for plotting
 grid_search_results = root_dir / "results/grid_search"
-learning_curve_results = root_dir / "results/learning_curve"
-gpr_with_cv_results = root_dir / "results/gpr"
+new_grid_search_results = root_dir / "results/new_grid_search"
+learning_curve_results = root_dir / "results/new_learning_curve"
+gpr_with_cv_results = root_dir / "results/new_gpr"
 
 
 def set_axes_labels(
@@ -181,12 +182,12 @@ def get_learning_curve_data(
     x = df["numb_training_atoms"][index]
     y = df["av_test_rmse"][index]
 
-    if linker_type == "H":
-        ticks = [0.02, 0.04, 0.08, 0.16, 0.32]
-        labels = ["0.02", "0.04", "0.08", "0.16", "0.32"]
-    elif linker_type == "CH3":
+    if linker_type == "CH3":
         ticks = [0.10, 0.20, 0.40, 0.80]
         labels = ["0.10", "0.20", "0.40", "0.80"]
+    else:
+        ticks = [0.02, 0.04, 0.08, 0.16, 0.32]
+        labels = ["0.02", "0.04", "0.08", "0.16", "0.32"]
 
     return x, y, ticks, labels
 
@@ -203,7 +204,14 @@ def get_grid_search_data(
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, float]: x, y, z, levels, ticks, x_min, y_min.
     """
-    df = pd.read_csv(grid_search_results / f"{struct_type}_{linker_type}/results.csv")
+    if linker_type == "H_new":
+        df = pd.read_csv(
+            new_grid_search_results / f"{struct_type}_{linker_type}/results.csv"
+        )
+    else:
+        df = pd.read_csv(
+            grid_search_results / f"{struct_type}_{linker_type}/results.csv"
+        )
 
     x = list(df["config.sigma"])
     y = list(df["config.cutoff"])
@@ -237,8 +245,6 @@ def get_gpr_data(
     # Get the reference structure; this is the lowest energy structure
     # It is used to normalise the energies
 
-    ref_struct = get_reference_structure()
-
     # Load the GPR results
     if linker_type == "H":
         gpr_data = np.load(
@@ -248,6 +254,7 @@ def get_gpr_data(
         ).item()
 
         # Normalise the energies
+        ref_struct = get_reference_structure()
         test_preds = normalise_energies(gpr_data["test_predictions"], ref_struct)
         test_labels = normalise_energies(gpr_data["test_labels"], ref_struct)
         rmse = gpr_data["av_test_rmse"]
@@ -261,6 +268,19 @@ def get_gpr_data(
 
         test_preds = gpr_data["test_predictions"]
         test_labels = gpr_data["test_labels"]
+        rmse = gpr_data["av_test_rmse"]
+
+    elif linker_type == "H_new":
+        gpr_data = np.load(
+            gpr_with_cv_results
+            / f"gpr_{struct_type}_{energy_type}_{hypers_type}_ntrain{numb_train}_H_new.npy",
+            allow_pickle=True,
+        ).item()
+
+        # Normalise the energies
+        ref_struct = get_reference_structure(linker_type="H_new")
+        test_preds = normalise_energies(gpr_data["test_predictions"], ref_struct)
+        test_labels = normalise_energies(gpr_data["test_labels"], ref_struct)
         rmse = gpr_data["av_test_rmse"]
 
     return test_preds, test_labels, rmse

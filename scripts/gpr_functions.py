@@ -104,6 +104,7 @@ def gpr_with_cv(
             train_energies = train_energies[list]
             train_soaps = train_soaps[list]
 
+        print(f"Number of training points: {len(train_energies)}")
         # train the model
         model = train_gpr(noise, train_soaps, train_energies)
 

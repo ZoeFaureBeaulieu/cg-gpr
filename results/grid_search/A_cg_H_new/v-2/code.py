@@ -1,5 +1,5 @@
 @experiment(backend="csv", save_to=results_path, verbose=True)
-def train_model(atom_sigma: float, soap_cutoff: float, noise: float = noise) -> dict:
+def train_model(sigma: float, cutoff: float, noise: float = noise) -> dict:
     """Train a GPR model with the given SOAP hyperparameters and evaluate it using cross-validation.
 
     Args:
@@ -12,7 +12,7 @@ def train_model(atom_sigma: float, soap_cutoff: float, noise: float = noise) -> 
     """
     l_max = 8  # Based on convergence tests, no need to go higher. A lower l_max will be faster and less memory intensive.
 
-    desc = build_soap_descriptor(args.struct_type, soap_cutoff, atom_sigma, l_max)
+    desc = build_soap_descriptor(args.struct_type, cutoff, sigma, l_max)
 
     # set the B_site flag and the atomistic dataframe if needed
     if args.struct_type == "cg":

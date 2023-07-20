@@ -56,14 +56,14 @@ complete_cg_df, complete_a_df = get_complete_dataframes(
 fold_ids = get_fold_ids(complete_cg_df, 5)
 
 # number of training environments to use
-n_train = [
-    32000
-]  # [7, 15, 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000]  # , 16000, 32000]
+n_train = [7, 15, 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000]
 
 # get the SOAP descriptor with optimised hyperparameters
 # and the optimised regularisation noise
 soap_cutoff, atom_sigma, noise = get_opt_hypers(args.struct_type, args.linker_type)
-desc, noise = get_opt_soap_descriptor(args.struct_type, args.l_max)
+desc, _ = get_opt_soap_descriptor(args.struct_type, args.l_max)
+
+print(f"Cutoff={soap_cutoff}; sigma={atom_sigma}; noise={noise}")
 
 # set the B_site flag and the atomistic dataframe if needed
 if args.struct_type == "cg":
@@ -79,7 +79,7 @@ else:
 # create a csv file to store the results
 file_name = (
     root_dir
-    / f"results/learning_curve/lc_lMax{args.l_max}_{args.struct_type}_{args.linker_type}.csv"
+    / f"results/new_learning_curve/lc_lMax{args.l_max}_{args.struct_type}_{args.linker_type}.csv"
 )
 
 headers = [

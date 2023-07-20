@@ -34,7 +34,7 @@ def train_model(atom_sigma: float, soap_cutoff: float, noise: float = noise) -> 
         test_batches=all_rattled_batches,
         descriptor=desc,
         atomistic_df=a_df,
-        numb_train=args.numb_train,
+        numb_train=numb_train,
         B_site=B_site,
         energy_type=args.energy_type,
     )

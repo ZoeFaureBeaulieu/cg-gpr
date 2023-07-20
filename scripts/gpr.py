@@ -35,8 +35,8 @@ parser.add_argument(
 
 # optional arguments
 parser.add_argument(
-    "--numb_train", type=int, help="Number of training atoms", default=20000
-)  # number of training environments; default is 20000
+    "--numb_train", type=int, help="Number of training atoms", default=32000
+)  # number of training environments; default is 32000
 parser.add_argument(
     "--l_max", type=int, help="l_max for SOAP", default=8
 )  # l_max; default is 8 based on convergence tests, no need to go higher. A lower l_max will be faster and less memory intensive.

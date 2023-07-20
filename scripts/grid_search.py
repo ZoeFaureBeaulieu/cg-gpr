@@ -48,7 +48,7 @@ elif args.linker_type == "CH3":
 elif args.linker_type == "H_new":
     all_rattled_batches = [2, 3, 4, 5]
     energy_cutoff = 1
-    numb_train = 20000
+    numb_train = 10
 
 
 # load all the data as two dataframes: one for the cg structures and one for the atomistic structures
@@ -67,7 +67,9 @@ else:
 
 
 # using the digital experiments package to save the results to a csv file
-results_path = root_dir / f"results/grid_search/{args.struct_type}_{args.linker_type}"
+results_path = (
+    root_dir / f"results/new_grid_search/{args.struct_type}_{args.linker_type}"
+)
 
 
 @experiment(backend="csv", save_to=results_path, verbose=True)

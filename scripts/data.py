@@ -16,6 +16,7 @@ ZEOLITE = "Zeolites"
 root_dir = Path(__file__).resolve().parent.parent
 hZIF_data = root_dir / "hZIF-data"
 grid_search_results = root_dir / "results/grid_search"
+new_grid_search_results = root_dir / "results/new_grid_search"
 
 # dict of the rattling parameters used
 r_levels = {
@@ -432,8 +433,15 @@ def get_opt_hypers(struct_type: str, linker_type: str) -> Tuple[float, float, fl
         atom_sigma = best["config.sigma"]
         noise = best["config.noise"]
 
-    # elif linker_type == "H_new":
-    # TODO when results are ready
+    elif linker_type == "H_new":
+        df = pd.read_csv(new_grid_search_results / f"{struct_type}_H_new/results.csv")
+
+        # sort by test RMSE and get the best result
+        best = df.sort_values(by=["result.av_test_rmse"]).iloc[0]
+
+        soap_cutoff = best["config.cutoff"]
+        atom_sigma = best["config.sigma"]
+        noise = 0.2
 
     return soap_cutoff, atom_sigma, noise
 
