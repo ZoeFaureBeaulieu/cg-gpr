@@ -24,12 +24,6 @@ parser.add_argument(
     help="Structure type (cg, A_cg or atomistic)",
     required=True,
 )
-parser.add_argument(
-    "--linker_type",
-    type=str,
-    help="Linker type (H or CH3)",
-    required=True,
-)
 
 # optional arguments
 parser.add_argument(
@@ -37,39 +31,23 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-if args.linker_type == "H":
-    all_rattled_batches = [2, 3, 4, 5, 6]
-    energy_cutoff = 1
-    numb_train = 20000
-elif args.linker_type == "CH3":
-    all_rattled_batches = [2, 3, 4, 5]
-    energy_cutoff = -5.7
-    numb_train = 18500
-elif args.linker_type == "H_new":
-    all_rattled_batches = [2, 3, 4, 5]
-    energy_cutoff = 1
-    numb_train = 10
+
+all_rattled_batches = [2, 3, 4, 5]
+energy_cutoff = 1
+numb_train = 10000
 
 
 # load all the data as two dataframes: one for the cg structures and one for the atomistic structures
-complete_cg_df, complete_a_df = get_complete_dataframes(
-    energy_cutoff=energy_cutoff, im_linker=args.linker_type
-)
+complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=energy_cutoff)
 
 # randomly split the structure ids into k folds
 fold_ids = get_fold_ids(complete_cg_df, 5)
 
-# get the optimised regularisation noise, obtained from Bayesian optimisation
-if args.linker_type == "H_new":
-    noise = 0.2
-else:
-    _, _, noise = get_opt_hypers(args.struct_type, linker_type=args.linker_type)
-
+# get the optimised regularisation noise
+_, _, noise = get_opt_hypers(args.struct_type)
 
 # using the digital experiments package to save the results to a csv file
-results_path = (
-    root_dir / f"results/new_grid_search/{args.struct_type}_{args.linker_type}"
-)
+results_path = root_dir / f"results/new_grid_search/{args.struct_type}"
 
 
 @experiment(backend="csv", save_to=results_path, verbose=True)

@@ -15,15 +15,10 @@ ZEOLITE = "Zeolites"
 # paths to the dataset and grid search results directories
 root_dir = Path(__file__).resolve().parent.parent
 hZIF_data = root_dir / "hZIF-data"
-grid_search_results = root_dir / "results/grid_search"
-new_grid_search_results = root_dir / "results/new_grid_search"
+grid_search_results = root_dir / "results/new_grid_search"
 
 # dict of the rattling parameters used
-r_levels = {
-    1: {"rms": 0.001, "length": 0.005, "angle": 0.25, "rattling_type": "small"},
-    2: {"rms": 0.01, "length": 0.05, "angle": 2.5, "rattling_type": "medium"},
-    3: {"rms": 0.1, "length": 0.1, "angle": 5.0, "rattling_type": "large"},
-}
+r_levels = ["small", "medium", "large"]
 
 # the two ways of generating the rattled structures: relax then decorate or decorate then relax
 gen_codes = ["r-d", "d-r"]
@@ -34,53 +29,41 @@ gen_codes = ["r-d", "d-r"]
 # each batch contains contains 6x the number of structures as batch 1, for each pair of gen_codes and r_levels, i.e. r_level[1]x"r-d", r_levels[1]x"d-r" and so on
 # each batch 2-6 contains the same set of structures but each rattled with a different random seed
 # the random seed is used to select which atoms are rattled
-H_rattled_batches = [2, 3, 4, 5, 6]
-CH3_rattled_batches = [2, 3, 4, 5]
+rattled_batches = [2, 3, 4, 5]
 
 
 def get_complete_dataframes(
-    energy_cutoff: int, im_linker: str = "H", curated: bool = False
+    energy_cutoff: int, curated: bool = False
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Get the complete coarse-grained and atomistic dataframes containing both the MOF and Zeolite datasets.
     These dataframes have been processed to remove high energy structures and null columns.
 
     Args:
         energy_cutoff (int): the energy cutoff used to remove high energy structures. Any structures containing Si atoms with local energy above this cutoff are removed.
-        im_linker (str, optional): the imidazolate linker used to generate the structures. Either "H" or "CH3".
     Returns:
         Tuple[pd.DataFrame, pd.DataFrame]: the complete processed dataframes with either the coarse-grained or atomistic atoms objects.
     """
     # obtain and process the MOF structures
-    cg_mofs = get_all_data(MOF, coarse_grain=True, im_linker=im_linker)
-    if im_linker == "H":
-        a_mofs = get_all_data(MOF, coarse_grain=False, im_linker=im_linker)
-    else:
-        a_mofs = get_curated_data(MOF, coarse_grain=False, im_linker=im_linker)
+    cg_mofs = get_all_data(MOF, coarse_grain=True)
+    a_mofs = get_all_data(MOF, coarse_grain=False)
     if curated:
         remove_close_contacts(cg_mofs, a_mofs)
-    # else:
-    #     a_mofs = get_all_data(MOF, coarse_grain=False, im_linker=im_linker)
-
     remove_high_energy_structures(
         cg_mofs, energy_cutoff=energy_cutoff, atomistic_df=a_mofs
     )
 
-    # cg_mofs, a_mofs = remove_null_columns(cg_mofs, a_mofs)
+    cg_mofs, a_mofs = remove_null_columns(cg_mofs, a_mofs)
 
     # obtain and process the Zeolite structures
-    cg_zeolites = get_all_data(ZEOLITE, coarse_grain=True, im_linker=im_linker)
-    if im_linker == "H":
-        a_zeolites = get_all_data(ZEOLITE, coarse_grain=False, im_linker=im_linker)
-    else:
-        a_zeolites = get_curated_data(ZEOLITE, coarse_grain=False, im_linker=im_linker)
+    cg_zeolites = get_all_data(ZEOLITE, coarse_grain=True)
+    a_zeolites = get_all_data(ZEOLITE, coarse_grain=False)
     if curated:
         remove_close_contacts(cg_zeolites, a_zeolites)
-
     remove_high_energy_structures(
         cg_zeolites, energy_cutoff=energy_cutoff, atomistic_df=a_zeolites
     )
 
-    # cg_zeolites, a_zeolites = remove_null_columns(cg_zeolites, a_zeolites)
+    cg_zeolites, a_zeolites = remove_null_columns(cg_zeolites, a_zeolites)
 
     # concatenate the MOF and Zeolite dataframes
     complete_cg_df = concat_dataframes([cg_mofs, cg_zeolites])
@@ -92,10 +75,6 @@ def get_complete_dataframes(
 def get_file_identifier(
     batch_number: int,
     coarse_grain: bool,
-    im_linker: str = "H",
-    rms: float = None,
-    length: float = None,
-    angle: float = None,
     rattling_type: str = None,
     gen_code: str = None,
 ) -> str:
@@ -114,36 +93,20 @@ def get_file_identifier(
     Returns:
         str: the file extension
     """
-    if im_linker == "H":
-        if coarse_grain:
-            if batch_number == 1:
-                return f"coarse-grained/batch1_d-rlx-cg-d-cg"
-            else:
-                return f"coarse-grained/batch{batch_number}_d-rlx-cg-{gen_code}_rms{rms}_length{length}_angle{angle}-cg"
-        else:
-            if batch_number == 1:
-                return f"atomistic/batch1_d-rlx-cg-d"
-            else:
-                return f"atomistic/batch{batch_number}_d-rlx-cg-{gen_code}_rms{rms}_length{length}_angle{angle}"
 
+    if coarse_grain:
+        if batch_number == 1:
+            return f"coarse-grained/batch1_d-rlx-cg-d"
+        else:
+            return f"coarse-grained/batch{batch_number}_d-rlx-cg-{gen_code}_{rattling_type}"
     else:
-        if coarse_grain:
-            if batch_number == 1:
-                return f"coarse-grained/batch1_d-rlx-cg-d"
-            else:
-                return f"coarse-grained/batch{batch_number}_d-rlx-cg-{gen_code}_{rattling_type}"
+        if batch_number == 1:
+            return f"atomistic/batch1_d-rlx-cg-d"
         else:
-            if batch_number == 1:
-                return f"atomistic/batch1_d-rlx-cg-d"
-            else:
-                return (
-                    f"atomistic/batch{batch_number}_d-rlx-cg-{gen_code}_{rattling_type}"
-                )
+            return f"atomistic/batch{batch_number}_d-rlx-cg-{gen_code}_{rattling_type}"
 
 
-def get_all_data(
-    struct_type: str, coarse_grain: bool, im_linker: str = "H"
-) -> pd.DataFrame:
+def get_all_data(struct_type: str, coarse_grain: bool) -> pd.DataFrame:
     """Organises all the structures in the database into a dataframe.
     Rows are indexed according to the following parameters:
     - batch: the batch number, i.e 1, 2, 3, 4, 5 or 6
@@ -182,20 +145,15 @@ def get_all_data(
     """
     s_list = []
 
-    if im_linker == "H":
-        all_batches = [1, 2, 3, 4, 5, 6]
-    else:
-        all_batches = [1, 2, 3, 4, 5]
+    all_batches = [1, 2, 3, 4, 5]
 
     # loop through all batches
     for b in all_batches:
         # batch 1 is not rattled
         if b == 1:
-            file_id = get_file_identifier(
-                coarse_grain=coarse_grain, batch_number=b, im_linker=im_linker
-            )
+            file_id = get_file_identifier(coarse_grain=coarse_grain, batch_number=b)
             structures = read(
-                hZIF_data / f"{struct_type}/MOFFF/{im_linker}/{file_id}.xyz",
+                hZIF_data / f"{struct_type}/MOFFF/H/{file_id}.xyz",
                 index=":",
             )
             # loop through all structures in batch 1 (i.e. no rattling)
@@ -214,18 +172,16 @@ def get_all_data(
         else:
             # loop through the 3 rattling levels
             for r in r_levels:
-                r_params = r_levels[r]
                 # loop through the 2 gen-codes
                 for g in gen_codes:
                     file_id = get_file_identifier(
-                        **r_params,
                         gen_code=g,
                         coarse_grain=coarse_grain,
                         batch_number=b,
-                        im_linker=im_linker,
+                        rattling_type=r,
                     )
                     structures = read(
-                        hZIF_data / f"{struct_type}/MOFFF/{im_linker}/{file_id}.xyz",
+                        hZIF_data / f"{struct_type}/MOFFF/H/{file_id}.xyz",
                         index=":",
                     )
                     # loop through all structures in the batch
@@ -285,7 +241,6 @@ def remove_high_energy_structures(
                     # if an atomistic dataframe is given, replace the corresponding structure with NaN
                     if atomistic_df is not None:
                         atomistic_df.loc[rowIndex, columnIndex] = np.nan
-    # return cg_df, atomistic_df
 
 
 def remove_close_contacts(
@@ -301,7 +256,6 @@ def remove_close_contacts(
                 if s.info["reject_bond"] == True:
                     atomistic_df.loc[rowIndex, columnIndex] = np.nan
                     cg_df.loc[rowIndex, columnIndex] = np.nan
-        # return cg_df, atomistic_df
 
 
 def remove_null_columns(
@@ -399,7 +353,7 @@ def get_energies(
     return energies
 
 
-def get_opt_hypers(struct_type: str, linker_type: str) -> Tuple[float, float, float]:
+def get_opt_hypers(struct_type: str) -> Tuple[float, float, float]:
     """Get the optimal SOAP hyperparameters for a given structure type, i.e, A_cg, cg or atomistic, as well as the optimal 'noise' value.
     Optimal SOAP hypers are determined by the grid search results while the optimal noise value is determined by Bayesian optimisation.
 
@@ -409,39 +363,15 @@ def get_opt_hypers(struct_type: str, linker_type: str) -> Tuple[float, float, fl
     Returns:
         Tuple[float,float,float]: the two SOAP hypers - soap_cutoff, sigma - and the noise value
     """
-    if linker_type == "CH3":
-        df = pd.read_csv(
-            root_dir / f"results/hypop/train_15000/{struct_type}_CH3/results.csv"
-        )
 
-        # sort by test RMSE and get the best result
-        best = df.sort_values(by=["result.av_test_rmse"]).iloc[0]
+    df = pd.read_csv(grid_search_results / f"{struct_type}_H_new/results.csv")
 
-        soap_cutoff = best["config.soap_cutoff"]
-        atom_sigma = best["config.atom_sigma"]
-        noise = best["config.noise"]
+    # sort by test RMSE and get the best result
+    best = df.sort_values(by=["result.av_test_rmse"]).iloc[0]
 
-    elif linker_type == "H":
-        df = pd.read_csv(
-            grid_search_results / f"{struct_type}_{linker_type}/results.csv"
-        )
-
-        # sort by test RMSE and get the best result
-        best = df.sort_values(by=["result.av_test_rmse"]).iloc[0]
-
-        soap_cutoff = best["config.cutoff"]
-        atom_sigma = best["config.sigma"]
-        noise = best["config.noise"]
-
-    elif linker_type == "H_new":
-        df = pd.read_csv(new_grid_search_results / f"{struct_type}_H_new/results.csv")
-
-        # sort by test RMSE and get the best result
-        best = df.sort_values(by=["result.av_test_rmse"]).iloc[0]
-
-        soap_cutoff = best["config.cutoff"]
-        atom_sigma = best["config.sigma"]
-        noise = 0.2
+    soap_cutoff = best["config.cutoff"]
+    atom_sigma = best["config.sigma"]
+    noise = best["config.noise"]
 
     return soap_cutoff, atom_sigma, noise
 
@@ -487,7 +417,7 @@ def get_opt_soap_descriptor(
     Returns:
         Tuple[Descriptor, float]: the SOAP descriptor and the optimal noise value
     """
-    soap_cutoff, atom_sigma, noise = get_opt_hypers(struct_type, linker_type="H")
+    soap_cutoff, atom_sigma, noise = get_opt_hypers(struct_type)
     desc = build_soap_descriptor(struct_type, soap_cutoff, atom_sigma, l_max)
 
     return desc, noise
@@ -605,116 +535,3 @@ def map_chemical_symbols(structure, mapping):
     original_symbols = structure.get_chemical_symbols()
     new_symbols = [mapping[s] for s in original_symbols]
     structure.set_chemical_symbols(new_symbols)
-
-
-def get_curated_data(
-    struct_type: str, coarse_grain: bool, im_linker: str = "H"
-) -> pd.DataFrame:
-    """Organises all the structures in the database into a dataframe.
-    Rows are indexed according to the following parameters:
-    - batch: the batch number, i.e 1, 2, 3, 4, 5 or 6
-    - rattling: the rattling level, i.e. 1, 2 or 3
-    - gen-code: the way in which the rattled structures were generated i.e. relax then decorate (r-d) or decorate then relax (d-r)
-    Each column corresponds to a given structure ID tag.
-    Each cell contains a structure as an ase.Atoms object.
-    Each atoms object can be identified by its unique combination of batch, rattling, gen-code and id.
-
-                                 |               id tag
-    +------+----------+----------+------------+-----------+-----------+
-    |batch | rattling | gen-code |  AB1_MOF-1 | AB1_MOF-2 | AB1_MOF-3 |
-    +------+----------+----------+------------+-----------+-----------+
-    |  1   |   None   | None     |  Atoms     | Atoms     | Atoms     |
-    +------+----------+----------+------------+-----------+-----------+
-    |      |          | d-r      |  Atoms     | Atoms     | Atoms     |
-    |      |   small  +----------+------------+-----------+-----------+
-    |      |          | r-d      |  Atoms     | Atoms     | Atoms     |
-    |      +----------+----------+------------+-----------+-----------+
-    |      |          | d-r      |  Atoms     | Atoms     | Atoms     |
-    |  2   |  medium  +----------+------------+-----------+-----------+
-    |      |          | r-d      |  Atoms     | Atoms     | Atoms     |
-    |      +----------+----------+------------+-----------+-----------+
-    |      |          | d-r      |  Atoms     | Atoms     | Atoms     |
-    |      |   large  +----------+------------+-----------+-----------+
-    |      |          | r-d      |  Atoms     | Atoms     | Atoms     |
-    +------+----------+----------+------------+-----------+-----------+
-
-    Args:
-        struct_type (str): MOF or Zeolite
-        coarse_grain (bool): coarse-grained or atomistic structures
-        im_linker (str, optional): the linker type. Defaults to "H". Options are 'H' or 'CH3'.
-
-    Returns:
-        pd.Dataframe: all structures organised into a dataframe.
-    """
-    s_list = []
-
-    if im_linker == "H":
-        all_batches = [1, 2, 3, 4, 5, 6]
-    else:
-        all_batches = [1, 2, 3, 4, 5]
-
-    # loop through all batches
-    for b in all_batches:
-        # batch 1 is not rattled
-        if b == 1:
-            file_id = get_file_identifier(
-                coarse_grain=coarse_grain, batch_number=b, im_linker=im_linker
-            )
-            structures = read(
-                hZIF_data / f"{struct_type}/MOFFF-curated/{im_linker}/{file_id}.xyz",
-                index=":",
-            )
-            # loop through all structures in batch 1 (i.e. no rattling)
-            # label each structure with its batch number, rattling level, gen-code and ID tag
-            for s in structures:
-                s_list.append(
-                    {
-                        "batch": b,
-                        "rattling": 0,
-                        "gen-code": "None",
-                        "id": s.info["id"],
-                        "structure": s,  # the structure as an ase.Atoms object
-                    }
-                )
-        # batches 2-6 are rattled
-        else:
-            # loop through the 3 rattling levels
-            for r in r_levels:
-                r_params = r_levels[r]
-                # loop through the 2 gen-codes
-                for g in gen_codes:
-                    file_id = get_file_identifier(
-                        **r_params,
-                        gen_code=g,
-                        coarse_grain=coarse_grain,
-                        batch_number=b,
-                        im_linker=im_linker,
-                    )
-                    structures = read(
-                        hZIF_data
-                        / f"{struct_type}/MOFFF-curated/{im_linker}/{file_id}.xyz",
-                        index=":",
-                    )
-                    # loop through all structures in the batch
-                    # label each structure with its batch number, rattling level, gen-code and ID tag
-                    for s in structures:
-                        s_list.append(
-                            {
-                                "batch": b,
-                                "rattling": r,
-                                "gen-code": g,
-                                "id": s.info["id"],
-                                "structure": s,
-                            }
-                        )
-
-    # convert the list of dictionaries into a dataframe
-    df = pd.DataFrame(s_list)
-
-    # pivot the dataframe so that each column corresponds to a given structure ID tag
-    df = df.pivot(
-        index=["batch", "rattling", "gen-code"],
-        columns="id",
-        values="structure",
-    )
-    return df
