@@ -163,7 +163,6 @@ def get_minima_labels(df: pd.DataFrame, sort_by: str) -> Tuple[float, float]:
 def get_learning_curve_data(
     struct_type: str,
     l_max: int = 8,
-    linker_type: str = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Obtain results from the learning curve experiments for a given structure type.
 
@@ -182,19 +181,14 @@ def get_learning_curve_data(
     x = df["numb_training_atoms"][index]
     y = df["av_test_rmse"][index]
 
-    if linker_type == "CH3":
-        ticks = [0.10, 0.20, 0.40, 0.80]
-        labels = ["0.10", "0.20", "0.40", "0.80"]
-    else:
-        ticks = [0.02, 0.04, 0.08, 0.16, 0.32]
-        labels = ["0.02", "0.04", "0.08", "0.16", "0.32"]
+    ticks = [0.02, 0.04, 0.08, 0.16, 0.32]
+    labels = ["0.02", "0.04", "0.08", "0.16", "0.32"]
 
     return x, y, ticks, labels
 
 
 def get_grid_search_data(
     struct_type: str,
-    linker_type: str = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, float]:
     """Obtain results from a grid search.
 
@@ -204,14 +198,10 @@ def get_grid_search_data(
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, float]: x, y, z, levels, ticks, x_min, y_min.
     """
-    if linker_type == "H_new":
-        df = pd.read_csv(
-            new_grid_search_results / f"{struct_type}_{linker_type}/results.csv"
-        )
-    else:
-        df = pd.read_csv(
-            grid_search_results / f"{struct_type}_{linker_type}/results.csv"
-        )
+
+    df = pd.read_csv(
+        new_grid_search_results / f"{struct_type}_{linker_type}/results.csv"
+    )
 
     x = list(df["config.sigma"])
     y = list(df["config.cutoff"])
@@ -246,41 +236,16 @@ def get_gpr_data(
     # It is used to normalise the energies
 
     # Load the GPR results
-    if linker_type == "H":
-        gpr_data = np.load(
-            gpr_with_cv_results
-            / f"{energy_type}/{hypers_type}_hypers/gpr_{struct_type}_ntrain{numb_train}.npy",
-            allow_pickle=True,
-        ).item()
+    gpr_data = np.load(
+        gpr_with_cv_results
+        / f"gpr_{struct_type}_{energy_type}_{hypers_type}_ntrain{numb_train}_H_new.npy",
+        allow_pickle=True,
+    ).item()
 
-        # Normalise the energies
-        ref_struct = get_reference_structure()
-        test_preds = normalise_energies(gpr_data["test_predictions"], ref_struct)
-        test_labels = normalise_energies(gpr_data["test_labels"], ref_struct)
-        rmse = gpr_data["av_test_rmse"]
-
-    elif linker_type == "CH3":
-        gpr_data = np.load(
-            gpr_with_cv_results
-            / f"{energy_type}/{hypers_type}_hypers/gpr_{struct_type}_ntrain{numb_train}_CH3.npy",
-            allow_pickle=True,
-        ).item()
-
-        test_preds = gpr_data["test_predictions"]
-        test_labels = gpr_data["test_labels"]
-        rmse = gpr_data["av_test_rmse"]
-
-    elif linker_type == "H_new":
-        gpr_data = np.load(
-            gpr_with_cv_results
-            / f"gpr_{struct_type}_{energy_type}_{hypers_type}_ntrain{numb_train}_H_new.npy",
-            allow_pickle=True,
-        ).item()
-
-        # Normalise the energies
-        ref_struct = get_reference_structure(linker_type="H_new")
-        test_preds = normalise_energies(gpr_data["test_predictions"], ref_struct)
-        test_labels = normalise_energies(gpr_data["test_labels"], ref_struct)
-        rmse = gpr_data["av_test_rmse"]
+    # Normalise the energies
+    ref_struct = get_reference_structure(linker_type="H_new")
+    test_preds = normalise_energies(gpr_data["test_predictions"], ref_struct)
+    test_labels = normalise_energies(gpr_data["test_labels"], ref_struct)
+    rmse = gpr_data["av_test_rmse"]
 
     return test_preds, test_labels, rmse

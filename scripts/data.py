@@ -482,7 +482,7 @@ def remove_B_sites(atoms_object: Atoms) -> Atoms:
     return atoms_object
 
 
-def get_reference_structure(linker_type: str = "H") -> Atoms:
+def get_reference_structure() -> Atoms:
     """Get the reference structure, i.e., the structure with the lowest total energy.
     This should be the ZIF zni structure (id tag = AB2_MOF-128). This structure is used to 'normalise' the energies.
 
@@ -492,7 +492,7 @@ def get_reference_structure(linker_type: str = "H") -> Atoms:
         Atoms: the atoms object for the reference structure
     """
 
-    cg_df, _ = get_complete_dataframes(energy_cutoff=1, im_linker=linker_type)
+    cg_df, _ = get_complete_dataframes(energy_cutoff=1)
 
     ls_structures = cg_df.values.reshape(-1)  # convert to 1D array of atoms objects
     ls_structures = ls_structures[~pd.isnull(ls_structures)]  # remove nan values
