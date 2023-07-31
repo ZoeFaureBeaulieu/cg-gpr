@@ -3,15 +3,14 @@ from data import (
     get_complete_dataframes,
     get_fold_ids,
     get_opt_hypers,
-    get_opt_soap_descriptor,
     get_energies,
+    build_soap_descriptor,
     calc_soap_vectors,
 )
 from gpr_functions import train_gpr, predict_gpr
 import argparse
 import numpy as np
 import random
-import pandas as pd
 
 root_dir = Path(__file__).resolve().parent.parent
 
@@ -24,11 +23,12 @@ parser.add_argument(
     help="Structure type (cg, A_cg or atomistic)",
     required=True,
 )
+parser.add_argument("--test_set", type=str, required=True)
 
 # optional arguments
 parser.add_argument(
     "--l_max", type=int, help="l_max for SOAP", default=8
-)  # l_max is optional; default is 8 based on convergence tests, no need to go higher. A lower l_max will be faster and less memory intensive.
+)  # default is 8 based on convergence tests, no need to go higher. A lower l_max will be faster and less memory intensive.
 parser.add_argument(
     "--energy_type", type=str, help="Energy type", default="e_local_mofff"
 )
@@ -38,7 +38,8 @@ print(f"Structure type: {args.struct_type}")
 
 all_rattled_batches = [2, 3, 4, 5]
 energy_cutoff = 1
-numb_train = 10
+numb_train = 32_000
+
 
 print(f"Number of training atoms: {numb_train}")
 
@@ -46,16 +47,15 @@ complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=1)
 
 train_cg_df = complete_cg_df.xs("medium", level=1)
 print(f"training dataframe shape: {train_cg_df.shape}")
-test_cg_df1 = complete_cg_df.xs("small", level=1)
-test_cg_df2 = complete_cg_df.xs("large", level=1)
 
-# combine the two test sets
-test_cg_df = pd.concat([test_cg_df1, test_cg_df2])
+
+test_cg_df = complete_cg_df.xs(f"{args.test_set}", level=1)
 print(f"test dataframe shape: {test_cg_df.shape}")
 
-soap_cutoff, atom_sigma, noise = get_opt_hypers(args.struct_type)
-desc, noise = get_opt_soap_descriptor(args.struct_type)
+soap_cutoff, atom_sigma, noise = get_opt_hypers(args.struct_type, medium=True)
+desc = build_soap_descriptor(args.struct_type, soap_cutoff, atom_sigma, args.l_max)
 print(f"SOAP cutoff: {soap_cutoff}; atom_sigma: {atom_sigma}; noise: {noise}")
+
 # set the B_site flag and the atomistic dataframe if needed
 if args.struct_type == "cg":
     B_site = True
@@ -68,9 +68,7 @@ elif args.struct_type == "A_cg":
 else:
     B_site = True
     train_a_df = complete_a_df.xs("medium", level=1)
-    test_a_df1 = complete_a_df.xs("small", level=1)
-    test_a_df2 = complete_a_df.xs("large", level=1)
-    test_a_df = pd.concat([test_a_df1, test_a_df2])
+    test_a_df = complete_a_df.xs(f"{args.test_set}", level=1)
     print(f"training atomistic dataframe shape: {train_a_df.shape}")
     print(f"test atomistic dataframe shape: {test_a_df.shape}")
 
@@ -134,6 +132,6 @@ print(f"Test error: {test_error:.3f}")
 
 np.save(
     root_dir
-    / f"results/external_test/medium_train_{args.struct_type}_preds_ntrain{numb_train}.npy",
+    / f"results/external_test/test_{args.test_set}_{args.struct_type}_preds_ntrain{numb_train}.npy",
     results,
 )
