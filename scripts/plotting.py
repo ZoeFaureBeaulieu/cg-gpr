@@ -8,8 +8,7 @@ from .data import get_reference_structure, normalise_energies
 # the parent directory
 root_dir = Path(__file__).resolve().parent.parent
 # directories to the data for plotting
-grid_search_results = root_dir / "results/grid_search"
-new_grid_search_results = root_dir / "results/new_grid_search"
+grid_search_results = root_dir / "results/new_grid_search"
 learning_curve_results = root_dir / "results/new_learning_curve"
 gpr_with_cv_results = root_dir / "results/new_gpr"
 
@@ -163,6 +162,7 @@ def get_minima_labels(df: pd.DataFrame, sort_by: str) -> Tuple[float, float]:
 def get_learning_curve_data(
     struct_type: str,
     l_max: int = 8,
+    medium_only: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Obtain results from the learning curve experiments for a given structure type.
 
@@ -173,9 +173,16 @@ def get_learning_curve_data(
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: the x and y values (training set size and RMSE respectively); and the y ticks and labels.
     """
-    df = pd.read_csv(
-        learning_curve_results / f"lc_lMax{l_max}_{struct_type}_{linker_type}.csv"
-    )
+    if medium_only:
+        df = pd.read_csv(
+            root_dir
+            / f"results/medium_only_learning_curve/"
+            / f"medium_only_lc_lMax{l_max}_{struct_type}.csv"
+        )
+    else:
+        df = pd.read_csv(
+            learning_curve_results / f"lc_lMax{l_max}_{struct_type}_H_new.csv"
+        )
 
     index = df["numb_training_atoms"] > 5
     x = df["numb_training_atoms"][index]
@@ -189,6 +196,7 @@ def get_learning_curve_data(
 
 def get_grid_search_data(
     struct_type: str,
+    medium_only: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, float]:
     """Obtain results from a grid search.
 
@@ -198,10 +206,12 @@ def get_grid_search_data(
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, float]: x, y, z, levels, ticks, x_min, y_min.
     """
-
-    df = pd.read_csv(
-        new_grid_search_results / f"{struct_type}_{linker_type}/results.csv"
-    )
+    if medium_only:
+        df = pd.read_csv(
+            root_dir / f"results/medium_only_grid_search/{struct_type}/results.csv"
+        )
+    else:
+        df = pd.read_csv(grid_search_results / f"{struct_type}_H_new/results.csv")
 
     x = list(df["config.sigma"])
     y = list(df["config.cutoff"])
@@ -216,9 +226,10 @@ def get_grid_search_data(
 def get_gpr_data(
     struct_type: str,
     hypers_type: str,
+    external_test: str = None,
     numb_train: int = 32000,
+    medium_only: bool = False,
     energy_type: str = "local_energies",
-    linker_type: str = "H",
 ) -> Tuple[np.ndarray, np.ndarray, float]:
     """Get the results from GPR with cross-validation.
 
@@ -236,16 +247,35 @@ def get_gpr_data(
     # It is used to normalise the energies
 
     # Load the GPR results
-    gpr_data = np.load(
-        gpr_with_cv_results
-        / f"gpr_{struct_type}_{energy_type}_{hypers_type}_ntrain{numb_train}_H_new.npy",
-        allow_pickle=True,
-    ).item()
+    if medium_only:
+        gpr_data = np.load(
+            root_dir
+            / "results/medium_only_gpr"
+            / f"gpr_{struct_type}_{energy_type}_{hypers_type}_ntrain{numb_train}.npy",
+            allow_pickle=True,
+        ).item()
+    elif external_test != None:
+        gpr_data = np.load(
+            root_dir
+            / f"results/external_test/test_{external_test}_{struct_type}_preds_ntrain{numb_train}.npy",
+            allow_pickle=True,
+        ).item()
+    else:
+        gpr_data = np.load(
+            gpr_with_cv_results
+            / f"gpr_{struct_type}_{energy_type}_{hypers_type}_ntrain{numb_train}_H_new.npy",
+            allow_pickle=True,
+        ).item()
 
     # Normalise the energies
-    ref_struct = get_reference_structure(linker_type="H_new")
-    test_preds = normalise_energies(gpr_data["test_predictions"], ref_struct)
-    test_labels = normalise_energies(gpr_data["test_labels"], ref_struct)
-    rmse = gpr_data["av_test_rmse"]
-
-    return test_preds, test_labels, rmse
+    if external_test != None:
+        ref_struct = get_reference_structure()
+        test_preds = normalise_energies(gpr_data["test_predictions"], ref_struct)
+        test_labels = normalise_energies(gpr_data["test_energies"], ref_struct)
+        return test_preds, test_labels
+    else:
+        ref_struct = get_reference_structure()
+        test_preds = normalise_energies(gpr_data["test_predictions"], ref_struct)
+        test_labels = normalise_energies(gpr_data["test_labels"], ref_struct)
+        rmse = gpr_data["av_test_rmse"]
+        return test_preds, test_labels, rmse

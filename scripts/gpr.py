@@ -26,6 +26,12 @@ parser.add_argument(
     help="The structure type from which to take the optimised hypers",
     required=True,
 )
+parser.add_argument(
+    "--medium_only",
+    type=bool,
+    help="Use medium-rattled structures only",
+    required=True,
+)
 
 
 # optional arguments
@@ -50,6 +56,12 @@ energy_cutoff = 1
 # load all the data as two dataframes: one for the cg structures and one for the atomistic structures
 complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=energy_cutoff)
 
+if args.medium:
+    complete_cg_df = complete_cg_df.xs("medium", level=1)
+    complete_a_df = complete_a_df.xs("medium", level=1)
+
+print(f"Dataframe shape: {complete_cg_df.shape}")
+
 # randomly split the structure ids into k folds
 fold_ids = get_fold_ids(complete_cg_df, 5)
 
@@ -58,6 +70,7 @@ fold_ids = get_fold_ids(complete_cg_df, 5)
 soap_cutoff, atom_sigma, noise = get_opt_hypers(args.hypers_type)
 desc = build_soap_descriptor(args.struct_type, soap_cutoff, atom_sigma, args.l_max)
 
+print(f"Cutoff={soap_cutoff}; sigma={atom_sigma}; noise={noise}")
 
 # set the B_site flag and the atomistic dataframe if needed
 if args.struct_type == "cg":
@@ -110,9 +123,17 @@ if args.energy_type == "e_local_mofff":
 else:
     e_label = "zn_energies"
 
-np.save(
-    gpr_results
-    / e_label
-    / f"{args.hypers_type}_hypers/gpr_{args.struct_type}_ntrain{args.numb_train}.npy",
-    gpr_preds,
-)
+if args.medium:
+    file_path = (
+        gpr_results
+        / e_label
+        / f"{args.hypers_type}_hypers/medium_only_gpr_{args.struct_type}_ntrain{args.numb_train}.npy"
+    )
+else:
+    file_path = (
+        gpr_results
+        / e_label
+        / f"{args.hypers_type}_hypers/gpr_{args.struct_type}_ntrain{args.numb_train}.npy"
+    )
+
+np.save(file_path, gpr_preds)

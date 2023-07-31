@@ -24,6 +24,12 @@ parser.add_argument(
     help="Structure type (cg, A_cg or atomistic)",
     required=True,
 )
+parser.add_argument(
+    "--medium_only",
+    type=bool,
+    help="Use medium-rattled structures only",
+    required=True,
+)
 
 # optional arguments
 parser.add_argument(
@@ -36,10 +42,18 @@ all_rattled_batches = [2, 3, 4, 5]
 energy_cutoff = 1
 numb_train = 10000
 
+print(f"Structure type: {args.struct_type}")
+print(f"Number of training atoms: {numb_train}")
+print(f"Medium only: {args.medium}")
+
 
 # load all the data as two dataframes: one for the cg structures and one for the atomistic structures
 complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=energy_cutoff)
+if args.medium:
+    complete_cg_df = complete_cg_df.xs("medium", level=1)
+    complete_a_df = complete_a_df.xs("medium", level=1)
 
+print(f"Dataframe shape: {complete_cg_df.shape}")
 # randomly split the structure ids into k folds
 fold_ids = get_fold_ids(complete_cg_df, 5)
 
@@ -47,7 +61,15 @@ fold_ids = get_fold_ids(complete_cg_df, 5)
 _, _, noise = get_opt_hypers(args.struct_type)
 
 # using the digital experiments package to save the results to a csv file
-results_path = root_dir / f"results/new_grid_search/{args.struct_type}"
+if args.medium:
+    results_path = (
+        root_dir
+        / f"results/medium_only_grid_search/{args.struct_type}_{args.linker_type}"
+    )
+else:
+    results_path = (
+        root_dir / f"results/new_grid_search/{args.struct_type}_{args.linker_type}"
+    )
 
 
 @experiment(backend="csv", save_to=results_path, verbose=True)

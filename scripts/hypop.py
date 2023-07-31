@@ -8,6 +8,9 @@ from data import (
 )
 from gpr_functions import gpr_with_cv
 import argparse
+from pathlib import Path
+
+root_dir = Path(__file__).resolve().parent.parent
 
 # get hyperparameters from the command line
 parser = argparse.ArgumentParser()
@@ -17,10 +20,16 @@ parser.add_argument(
     help="Structure type (cg, A_cg or atomistic)",
     required=True,
 )
+parser.add_argument(
+    "--medium_only",
+    type=bool,
+    help="Use medium-rattled structures only",
+    required=True,
+)
 
 # optional arguments
 parser.add_argument(
-    "--numb_train", type=int, help="Number of training atoms", default=10000
+    "--numb_train", type=int, help="Number of training atoms", default=1000
 )  # number of training environments is optional; default is 20000
 parser.add_argument(
     "--energy_type", type=str, help="Energy type", default="e_local_mofff"
@@ -32,12 +41,20 @@ energy_cutoff = 1
 
 # load all the data as two dataframes: one for the cg structures and one for the atomistic structures
 complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=energy_cutoff)
+if args.medium_only:
+    complete_cg_df = complete_cg_df.xs("medium", level=1)
+    complete_a_df = complete_a_df.xs("medium", level=1)
+
+print(f"Dataframe shape: {complete_cg_df.shape}")
 
 # randomly split the structure ids into k folds
 fold_ids = get_fold_ids(complete_cg_df, 5)
 
 # use digital experiments package to save the results to a csv file
-results_dir = f"results/hypop/train_{args.numb_train}/{args.struct_type}"
+if args.medium_only:
+    results_dir = root_dir / f"results/medium_only_hypop/{args.struct_type}"
+else:
+    results_dir = root_dir / f"results/hypop/{args.struct_type}"
 
 soap_cutoff, atom_sigma, _ = get_opt_hypers(args.struct_type)
 
@@ -94,12 +111,13 @@ search_space = {
 }
 
 # run the optimisation using the digital experiments package
-optimize_step_for(
-    train_model,
-    config_overides={"atom_sigma": atom_sigma, "soap_cutoff": soap_cutoff},
-    # minimize the average test set RMSE
-    loss_fn=lambda results: results["av_test_rmse"],
-    n_random_points=70,  # number of random points to try before Bayesian optimisation
-    space=search_space,
-    root=results_dir,
-)
+for _ in range(100):
+    optimize_step_for(
+        train_model,
+        config_overides={"atom_sigma": atom_sigma, "soap_cutoff": soap_cutoff},
+        # minimize the average test set RMSE
+        loss_fn=lambda results: results["av_test_rmse"],
+        n_random_points=70,  # number of random points to try before Bayesian optimisation
+        space=search_space,
+        root=results_dir,
+    )

@@ -33,9 +33,17 @@ print(f"Structure type: {args.struct_type}")
 
 all_rattled_batches = [2, 3, 4, 5]
 energy_cutoff = 1
+medium = True  # use medium-rattled structures only
+print(f"Medium only = {medium}")
 
 # load all the data as two dataframes: one for the cg structures and one for the atomistic structures
 complete_cg_df, complete_a_df = get_complete_dataframes(energy_cutoff=energy_cutoff)
+print(f"complete df shape: {complete_cg_df.shape}")
+
+if medium:
+    complete_cg_df = complete_cg_df.xs("medium", level=1)
+    complete_a_df = complete_a_df.xs("medium", level=1)
+    print(f"medium df shape: {complete_cg_df.shape}")
 
 # randomly split the structure ids into k folds
 fold_ids = get_fold_ids(complete_cg_df, 5)
@@ -62,9 +70,16 @@ else:
     a_df = complete_a_df
 
 # create a csv file to store the results
-file_name = (
-    root_dir / f"results/new_learning_curve/lc_lMax{args.l_max}_{args.struct_type}.csv"
-)
+if medium:
+    file_name = (
+        root_dir
+        / f"results/new_learning_curve/medium_only_lc_lMax{args.l_max}_{args.struct_type}.csv"
+    )
+else:
+    file_name = (
+        root_dir
+        / f"results/new_learning_curve/lc_lMax{args.l_max}_{args.struct_type}.csv"
+    )
 
 headers = [
     "soap_cutoff",
