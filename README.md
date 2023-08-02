@@ -1,5 +1,7 @@
 # Research data supporting "Coarse-grained versus fully atomistic machine learning for zeolitic imidazolate frameworks"
 
+[![DOI](https://zenodo.org/badge/637702153.svg)](https://zenodo.org/badge/latestdoi/637702153)
+
 This repository supports the manuscript:
 
 <div align="center">
