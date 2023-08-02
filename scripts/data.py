@@ -32,9 +32,7 @@ gen_codes = ["r-d", "d-r"]
 rattled_batches = [2, 3, 4, 5]
 
 
-def get_complete_dataframes(
-    energy_cutoff: int, curated: bool = False
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def get_complete_dataframes(energy_cutoff: int) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Get the complete coarse-grained and atomistic dataframes containing both the MOF and Zeolite datasets.
     These dataframes have been processed to remove high energy structures and null columns.
 
@@ -46,8 +44,6 @@ def get_complete_dataframes(
     # obtain and process the MOF structures
     cg_mofs = get_all_data(MOF, coarse_grain=True)
     a_mofs = get_all_data(MOF, coarse_grain=False)
-    if curated:
-        remove_close_contacts(cg_mofs, a_mofs)
     remove_high_energy_structures(
         cg_mofs, energy_cutoff=energy_cutoff, atomistic_df=a_mofs
     )
@@ -57,8 +53,6 @@ def get_complete_dataframes(
     # obtain and process the Zeolite structures
     cg_zeolites = get_all_data(ZEOLITE, coarse_grain=True)
     a_zeolites = get_all_data(ZEOLITE, coarse_grain=False)
-    if curated:
-        remove_close_contacts(cg_zeolites, a_zeolites)
     remove_high_energy_structures(
         cg_zeolites, energy_cutoff=energy_cutoff, atomistic_df=a_zeolites
     )
@@ -241,21 +235,6 @@ def remove_high_energy_structures(
                     # if an atomistic dataframe is given, replace the corresponding structure with NaN
                     if atomistic_df is not None:
                         atomistic_df.loc[rowIndex, columnIndex] = np.nan
-
-
-def remove_close_contacts(
-    cg_df: pd.DataFrame,
-    atomistic_df: pd.DataFrame,
-):
-    for rowIndex, row in atomistic_df.iterrows():
-        for columnIndex, s in row.items():
-            # if the cell is empty, skip it
-            if atomistic_df.loc[rowIndex, columnIndex] is np.nan:
-                continue
-            else:
-                if s.info["reject_bond"] == True:
-                    atomistic_df.loc[rowIndex, columnIndex] = np.nan
-                    cg_df.loc[rowIndex, columnIndex] = np.nan
 
 
 def remove_null_columns(
